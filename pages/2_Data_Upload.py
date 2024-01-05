@@ -3,7 +3,7 @@ import pandas as pd
 import base64
 import io
 
-st.title('Data Upload and Download')
+st.title('Data Upload')
 
 # Function to convert DataFrame to CSV (as a download)
 def convert_df_to_csv(df):
