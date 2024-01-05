@@ -19,6 +19,9 @@ df_en = read_df('data/reversed_qa_en.csv')  # English data
 # Display information about the files
 st.write("You can download Estonian and English datasets below:")
 
+st.subheader("Estonian Questionnaire")
+st.write(df_ee)
+
 # Download buttons
 st.download_button(
     label="Download Estonian Questionnaire Data (CSV)",
@@ -26,6 +29,9 @@ st.download_button(
     file_name='reversed_qa_ee.csv',
     mime='text/csv',
 )
+
+st.subheader("English Questionnaire")
+st.write(df_en)
 
 st.download_button(
     label="Download English Questionnaire Data (CSV)",
