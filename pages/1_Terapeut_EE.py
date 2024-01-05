@@ -25,7 +25,7 @@ def read_df(file_path):
 df = read_df('data/reversed_qa_ee.csv')
 
 # Function to process a question
-def process_question(question, lang="et"):
+def process_question(question):
     if not openai_api_key:
         st.info("Palun lisa oma OpenAI API võti jätkamiseks.")
         st.stop()
@@ -34,8 +34,7 @@ def process_question(question, lang="et"):
         temperature=0,
         model=model,
         openai_api_key=openai_api_key,
-        streaming=True,
-        lang=lang  # Set the language to Estonian if supported
+        streaming=True
     )
 
     pandas_df_agent = create_pandas_dataframe_agent(
