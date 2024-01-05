@@ -1,0 +1,8 @@
+streamlit
+prophet
+plotly
+scikit-learn
+langchain
+langchain-experimental
+openai
+tabulate
