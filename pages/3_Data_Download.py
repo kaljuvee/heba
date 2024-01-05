@@ -21,14 +21,14 @@ st.write("You can download Estonian and English datasets below:")
 
 # Download buttons
 st.download_button(
-    label="Download Estonian Data (CSV)",
+    label="Download Estonian Questionnaire Data (CSV)",
     data=convert_df_to_csv(df_ee),
     file_name='reversed_qa_ee.csv',
     mime='text/csv',
 )
 
 st.download_button(
-    label="Download English Data (CSV)",
+    label="Download English Questionnaire Data (CSV)",
     data=convert_df_to_csv(df_en),
     file_name='reversed_qa_en.csv',
     mime='text/csv',
