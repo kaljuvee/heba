@@ -13,8 +13,8 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 model = 'gpt-4-1106-preview'
 
 # Page configuration
-st.set_page_config(page_title="Feel Good Works")
-st.title("Feel Good Works AI")
+st.set_page_config(page_title="Feel Good Works - EE")
+st.title("Feel Good Works Terapeut")
 
 # Function to read the DataFrame
 @st.cache_data
@@ -25,13 +25,17 @@ def read_df(file_path):
 df = read_df('data/reversed_qa_ee.csv')
 
 # Function to process a question
-def process_question(question):
+def process_question(question, lang="et"):
     if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
+        st.info("Palun lisa oma OpenAI API võti jätkamiseks.")
         st.stop()
 
     llm = ChatOpenAI(
-        temperature=0, model=model, openai_api_key=openai_api_key, streaming=True
+        temperature=0,
+        model=model,
+        openai_api_key=openai_api_key,
+        streaming=True,
+        lang=lang  # Set the language to Estonian if supported
     )
 
     pandas_df_agent = create_pandas_dataframe_agent(
@@ -50,7 +54,7 @@ def process_question(question):
         st.write(response)
 
 # Initialize or clear conversation history
-if "messages" not in st.session_state or st.sidebar.button("Clear conversation history"):
+if "messages" not in st.session_state or st.sidebar.button("Puhasta vestluse ajalugu."):
     st.session_state["messages"] = [{"role": "assistant", "content": "Kuidas saan sind aidata?"}]
 
 # Display conversation history
@@ -80,8 +84,8 @@ for i in range(num_questions):
 container = st.container()
 with container:
     with st.form(key='my_form', clear_on_submit=True):
-        user_input = st.text_input("Ask a question:", key='input')
-        submit_button = st.form_submit_button(label='Send')
+        user_input = st.text_input("Esita küsimus:", key='input')
+        submit_button = st.form_submit_button(label='Saada')
 
     if submit_button and user_input:
         process_question(user_input)
