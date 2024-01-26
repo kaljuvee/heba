@@ -4,6 +4,7 @@ plotly
 scikit-learn
 langchain
 langchain-experimental
+langchain-community
 openai
 tabulate
 Faker 
