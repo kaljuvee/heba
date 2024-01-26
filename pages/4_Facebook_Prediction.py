@@ -7,7 +7,6 @@ from prophet import Prophet
 
 faker = Faker()
 
-# Function to generate synthetic data
 def generate_data(start_date, end_date):
     data = []
     for _ in range((end_date - start_date).days + 1):
@@ -27,7 +26,9 @@ def generate_data(start_date, end_date):
             "fan_count": faker.random_int(min=100, max=10000),
             "posts": faker.random_int(min=0, max=5),  # Number of posts as the target variable
         })
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])  # Ensure the 'date' column is datetime type
+    return df
 
 st.title("Facebook Data Forecasting")
 
@@ -51,6 +52,7 @@ if 'df' in st.session_state:
 
     if st.button("Rerun with Selected Regressors"):
         prophet_df = st.session_state['df'][['date', 'posts'] + selected_regressors].rename(columns={'date': 'ds', 'posts': 'y'})
+        prophet_df['ds'] = pd.to_datetime(prophet_df['ds'])  # Ensure 'ds' is datetime type
 
         model = Prophet(daily_seasonality=True)
         for regressor in selected_regressors:
@@ -59,6 +61,7 @@ if 'df' in st.session_state:
         model.fit(prophet_df)
 
         future = model.make_future_dataframe(periods=30)
+        future['ds'] = pd.to_datetime(future['ds'])  # Ensure 'ds' is datetime type
         future = future.merge(prophet_df.drop('y', axis=1), on='ds', how='left').fillna(method='ffill')
 
         forecast = model.predict(future)
