@@ -7,5 +7,5 @@ langchain-experimental
 langchain-community
 openai
 tabulate
-Faker 
+faker 
 prophet
