@@ -68,6 +68,11 @@ if 'df' in st.session_state:
 
         st.subheader("Forecast with Selected Regressors")
         fig1 = model.plot(forecast)
+        # Customizing the plot
+        ax = fig1.gca()  # Get the current Axes instance on the current figure
+        ax.set_ylabel('Post Count')  # Set the y-axis label
+
+        st.pyplot(fig1)  # Display the customized plot in Streamlit
         st.pyplot(fig1)
 
         st.subheader("Forecast Components")
