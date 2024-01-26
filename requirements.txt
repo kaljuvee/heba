@@ -6,3 +6,5 @@ langchain
 langchain-experimental
 openai
 tabulate
+Faker 
+prophet
