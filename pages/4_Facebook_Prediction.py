@@ -7,6 +7,7 @@ from prophet import Prophet
 
 faker = Faker()
 
+# Function to generate synthetic data
 def generate_data(start_date, end_date):
     data = []
     for _ in range((end_date - start_date).days + 1):
@@ -28,28 +29,28 @@ def generate_data(start_date, end_date):
         })
     return pd.DataFrame(data)
 
-st.title("Facebook Data Forecasting with Selectable Regressors")
+st.title("Facebook Data Forecasting")
 
 st.sidebar.header("Data Generation Settings")
 start_date = st.sidebar.date_input("Start date", datetime(2023, 12, 1))
 end_date = st.sidebar.date_input("End date", datetime(2023, 12, 31))
-generate_button = st.sidebar.button("Generate Data")
 
-if generate_button:
-    df = generate_data(start_date, end_date)
+if st.sidebar.button("Generate Data"):
+    st.session_state['df'] = generate_data(start_date, end_date)
 
     # Encode categorical variables
-    df['gender_encoded'] = LabelEncoder().fit_transform(df['gender'])
-    df['category_encoded'] = LabelEncoder().fit_transform(df['category'])
+    st.session_state['df']['gender_encoded'] = LabelEncoder().fit_transform(st.session_state['df']['gender'])
+    st.session_state['df']['category_encoded'] = LabelEncoder().fit_transform(st.session_state['df']['category'])
 
-    st.write("Generated Data:", df.head())
+if 'df' in st.session_state:
+    st.write("Generated Data:", st.session_state['df'].head())
 
     # Select regressors
     available_regressors = ['gender_encoded', 'category_encoded', 'fan_count']
     selected_regressors = st.multiselect("Select Regressors:", available_regressors, default=available_regressors)
 
     if st.button("Rerun with Selected Regressors"):
-        prophet_df = df[['date', 'posts'] + selected_regressors].rename(columns={'date': 'ds', 'posts': 'y'})
+        prophet_df = st.session_state['df'][['date', 'posts'] + selected_regressors].rename(columns={'date': 'ds', 'posts': 'y'})
 
         model = Prophet(daily_seasonality=True)
         for regressor in selected_regressors:
