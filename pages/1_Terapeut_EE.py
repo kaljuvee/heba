@@ -1,7 +1,7 @@
 from langchain.agents import AgentType
-from langchain_experimental.agents import create_pandas_dataframe_agent
-from langchain.callbacks import StreamlitCallbackHandler
-from langchain.chat_models import ChatOpenAI
+from langchain_community.agents import create_pandas_dataframe_agent
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
+from langchain_community.chat_models import ChatOpenAI
 import streamlit as st
 import pandas as pd
 import os
@@ -13,8 +13,8 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 model = 'gpt-4-1106-preview'
 
 # Page configuration
-st.set_page_config(page_title="Feel Good Works - EE")
-st.title("Feel Good Works Terapeut")
+st.set_page_config(page_title="Mentastic AI - EE")
+st.title("Mentastic AI Terapeut")
 
 # Function to read the DataFrame
 @st.cache_data
@@ -43,6 +43,7 @@ def process_question(question):
         verbose=True,
         agent_type=AgentType.OPENAI_FUNCTIONS,
         handle_parsing_errors=True,
+        allow_dangerous_code=True  # Allow dangerous code execution
     )
 
     st.session_state.messages.append({"role": "user", "content": question})
