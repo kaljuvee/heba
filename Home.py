@@ -10,7 +10,7 @@ import os
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Define model
-model = 'gpt-4-1106-preview'
+model = 'gpt-4o'
 
 # Page configuration
 st.set_page_config(page_title="Mentastic")
@@ -82,4 +82,7 @@ container = st.container()
 with container:
     with st.form(key='my_form', clear_on_submit=True):
         user_input = st.text_input("Ask a question:", key='input')
-        submit_button = st.form_submit_button(
+        submit_button = st.form_submit_button(label='Send')
+
+    if submit_button and user_input:
+        process_question(user_input)
