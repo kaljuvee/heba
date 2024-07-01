@@ -1,5 +1,5 @@
 from langchain.agents import AgentType
-from langchain_community.agents import create_pandas_dataframe_agent
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from langchain_community.chat_models import ChatOpenAI
 import streamlit as st
