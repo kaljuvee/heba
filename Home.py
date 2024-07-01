@@ -5,6 +5,7 @@ from langchain_community.chat_models import ChatOpenAI
 import streamlit as st
 import pandas as pd
 import os
+import json
 
 # Initialize OpenAI API Key
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -46,7 +47,16 @@ def process_question(question):
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        response = pandas_df_agent.run(st.session_state.messages, callbacks=[st_cb])
+        
+        query = {
+            "query": f"""
+            user_question = "{question}"
+            therapist_answer = df[df['Patient Question'] == user_question]['Therapist Answer'].values[0]
+            therapist_answer
+            """
+        }
+        response = pandas_df_agent.run(json.dumps(query), callbacks=[st_cb])
+        
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.write(response)
 
