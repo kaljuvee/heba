@@ -10,7 +10,7 @@ import os
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
 # Define model
-model = 'gpt-4-1106-preview'
+model = 'gpt-4o'
 
 # Page configuration
 st.set_page_config(page_title="Mentastic AI - EE")
