@@ -1,6 +1,6 @@
 # Menstastic AI
 
-## Environment and Installatoin
+## Environment and Installation
 
 ### Clone the Repo
   ```
