@@ -22,7 +22,7 @@ def read_df(file_path):
     return pd.read_csv(file_path)
 
 # Load the data
-df = read_df('data/reversed_qa_ee.csv')
+df = read_df('data/mentastic_qa_ee.csv')
 
 # Function to process a question
 def process_question(question):

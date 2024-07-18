@@ -13,8 +13,8 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
 # Load the dataframes
-df_ee = read_df('data/reversed_qa_ee.csv')  # Estonian data
-df_en = read_df('data/reversed_qa_en.csv')  # English data
+df_ee = read_df('data/mentastic_qa_ee.csv')  # Estonian data
+df_en = read_df('data/mentastic_qa_en.csv')  # English data
 
 # Display information about the files
 st.write("You can download Estonian and English datasets below:")
