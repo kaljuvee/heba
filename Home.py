@@ -84,7 +84,7 @@ if uploaded_file is not None:
     vector_store = FAISS.from_documents(texts, embeddings)
 
     prompt_template = PromptTemplate(
-        template="Use the following context to answer the question about mental wellbeing: {context}\nQuestion: {question}\nAnswer:",
+        template="Use the following context to answer the question about mental wellbeing: {context}\nQuestion: {question}\nAnswer. Always ask a question back to continue:",
         input_variables=["context", "question"]
     )
 
