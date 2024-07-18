@@ -9,3 +9,11 @@ openai
 tabulate
 faker 
 prophet
+python-dotenv
+pandas
+numpy
+sentence-transformers
+langchain-openai
+openai
+faiss-cpu
+langchain-huggingface
