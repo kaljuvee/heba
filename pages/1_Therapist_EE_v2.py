@@ -84,7 +84,7 @@ if uploaded_file is not None:
     vector_store = FAISS.from_documents(texts, embeddings)
 
     prompt_template = PromptTemplate(
-        template="Kasuta järgmist konteksti, et vastata vaimse heaolu küsimusele: {context}\nKüsimus: {question}\nVastus:",
+        template="Kasuta järgmist konteksti, et vastata vaimse heaolu küsimusele: {context}\nKüsimus: {question}\nVastus. Küsige alati kasutajalt küsimust, et vestlust jätkata, kuid alles lõpus pärast mõne soovituse esitamist:",
         input_variables=["context", "question"]
     )
 
