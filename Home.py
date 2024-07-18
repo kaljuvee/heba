@@ -1,98 +1,87 @@
-from langchain.agents import AgentType
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
-from langchain_community.chat_models import ChatOpenAI
 import streamlit as st
 import pandas as pd
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import DataFrameLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
 import os
-import json
+from dotenv import load_dotenv
 
-# Initialize OpenAI API Key
-openai_api_key = os.getenv("OPENAI_API_KEY")
+# Load environment variables
+load_dotenv()
+# Set up OpenAI API key
+openai_api_key = os.environ.get("OPENAI_API_KEY")
 
-# Define model
-model = 'gpt-4o'
+# Initialize the language model
+llm = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=openai_api_key)
 
-# Page configuration
-st.set_page_config(page_title="Mentastic")
-st.title("Mentastic AI")
+# Initialize the embeddings
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
-# Function to read the DataFrame
-@st.cache_data
-def read_df(file_path):
-    return pd.read_csv(file_path)
+# Function to get embeddings for a list of texts
+def get_embeddings(texts):
+    return embeddings.embed_documents(texts)
 
-# Load the data
-df = read_df('data/reversed_qa_en.csv')
+# Function to find the most similar question and its answer
+def find_similar_question(new_question, df, question_embeddings):
+    new_question_embedding = get_embeddings([new_question])[0]
+    similarities = cosine_similarity([new_question_embedding], question_embeddings)[0]
+    most_similar_index = np.argmax(similarities)
+    most_similar_question = df.iloc[most_similar_index]
+    return most_similar_question['Question'], most_similar_question['Answer']
 
-# Function to process a question
-def process_question(question):
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
+# Streamlit app
+st.title("Mental Wellbeing Assistant")
 
-    llm = ChatOpenAI(
-        temperature=0, model=model, openai_api_key=openai_api_key, streaming=True
+# File uploader
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.success("CSV file uploaded successfully!")
+
+    # Create vector store and QA chain
+    loader = DataFrameLoader(df, page_content_column="Question")
+    documents = loader.load()
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    texts = text_splitter.split_documents(documents)
+    vector_store = FAISS.from_documents(texts, embeddings)
+
+    prompt_template = PromptTemplate(
+        template="Use the following context to answer the question about mental wellbeing: {context}\nQuestion: {question}\nAnswer:",
+        input_variables=["context", "question"]
     )
 
-    pandas_df_agent = create_pandas_dataframe_agent(
-        llm,
-        df,
-        verbose=True,
-        agent_type=AgentType.OPENAI_FUNCTIONS,
-        handle_parsing_errors=True,
-        allow_dangerous_code=True  # Allow dangerous code execution
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=vector_store.as_retriever(),
+        chain_type_kwargs={"prompt": prompt_template}
     )
 
-    st.session_state.messages.append({"role": "user", "content": question})
-    with st.chat_message("assistant"):
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
-        
-        query = {
-            "query": f"""
-            user_question = "{question}"
-            therapist_answer = df[df['Patient Question'] == user_question]['Therapist Answer'].values[0]
-            therapist_answer
-            """
-        }
-        response = pandas_df_agent.run(json.dumps(query), callbacks=[st_cb])
-        
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.write(response)
+    # Get embeddings for all questions
+    question_embeddings = get_embeddings(df['Question'].tolist())
 
-# Initialize or clear conversation history
-if "messages" not in st.session_state or st.sidebar.button("Clear conversation history"):
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
-
-# Display conversation history
-for msg in st.session_state.messages:
-    st.chat_message(msg["role"]).write(msg["content"])
-
-# Sample questions
-sample_questions = ["I've been feeling stressed, can you help me?", "How can I manage disturbing thoughts?", "I keep ruminating on past events, how can I stop?",
-                    "What are some good ways to relax?", "Finding time for myself is hard, what's your advice?"]
-
-# Create columns for sample questions
-num_columns = 3
-num_questions = len(sample_questions)
-num_rows = (num_questions + num_columns - 1) // num_columns
-columns = st.columns(num_columns)
-
-# Add buttons for sample questions
-for i in range(num_questions):
-    col_index = i % num_columns
-    row_index = i // num_columns
-
-    with columns[col_index]:
-        if columns[col_index].button(sample_questions[i]):
-            process_question(sample_questions[i])
-
-# User input for new questions
-container = st.container()
-with container:
-    with st.form(key='my_form', clear_on_submit=True):
-        user_input = st.text_input("Ask a question:", key='input')
-        submit_button = st.form_submit_button(label='Send')
-
-    if submit_button and user_input:
-        process_question(user_input)
+    # Question input for general questions
+    st.subheader("Ask a question about mental wellbeing")
+    question = st.text_input("Enter your question:")
+    if st.button("Get Answer"):
+        if question:
+            answer = qa_chain.run(question)
+            if "I don't know" in answer or "I'm not sure" in answer:
+                # Perform similarity search if exact answer is not found
+                similar_question, similar_answer = find_similar_question(question, df, question_embeddings)
+                st.write("Couldn't find an exact answer. Here's a similar question and its answer:")
+                st.write(f"Most Similar Question: {similar_question}")
+                st.write(f"Suggested Answer: {similar_answer}")
+            else:
+                st.write("Answer:", answer)
+        else:
+            st.warning("Please enter a question.")
+else:
+    st.info("Please upload a CSV file to begin.")
