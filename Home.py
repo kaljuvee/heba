@@ -15,10 +15,14 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 # Set up OpenAI API key
-openai_api_key = os.environ.get("OPENAI_API_KEY")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+# Check if the API key is being loaded correctly
+if not openai_api_key:
+    raise ValueError("OpenAI API key not found in environment variables")
 
 # Initialize the language model
-llm = ChatOpenAI(model="gpt-4o", temperature=0.2, api_key=openai_api_key)
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, openai_api_key=openai_api_key)
 
 # Initialize the embeddings
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
@@ -35,8 +39,35 @@ def find_similar_question(new_question, df, question_embeddings):
     most_similar_question = df.iloc[most_similar_index]
     return most_similar_question['Question'], most_similar_question['Answer']
 
+# Function to process a question
+def process_question(question, qa_chain, df, question_embeddings):
+    answer = qa_chain.run(question)
+    if "I don't know" in answer or "I'm not sure" in answer:
+        # Perform similarity search if exact answer is not found
+        similar_question, similar_answer = find_similar_question(question, df, question_embeddings)
+        st.write("Couldn't find an exact answer. Here's a similar question and its answer:")
+        st.write(f"Most Similar Question: {similar_question}")
+        st.write(f"Suggested Answer: {similar_answer}")
+    else:
+        st.write("Answer:", answer)
+
 # Streamlit app
-st.title("Mental Wellbeing Assistant")
+st.title("Mentastic AI - Mental Wellbeing Assistant (RAG)")
+
+# Sample questions
+sample_questions = [
+    "I've been feeling stressed, can you help me?", 
+    "How can I manage disturbing thoughts?", 
+    "I keep ruminating on past events, how can I stop?",
+    "What are some good ways to relax?", 
+    "Finding time for myself is hard, what's your advice?"
+]
+
+# Create columns for sample questions
+num_columns = 3
+num_questions = len(sample_questions)
+num_rows = (num_questions + num_columns - 1) // num_columns
+columns = st.columns(num_columns)
 
 # File uploader
 uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
@@ -67,20 +98,21 @@ if uploaded_file is not None:
     # Get embeddings for all questions
     question_embeddings = get_embeddings(df['Question'].tolist())
 
+    # Add buttons for sample questions
+    for i in range(num_questions):
+        col_index = i % num_columns
+        row_index = i // num_columns
+
+        with columns[col_index]:
+            if st.button(sample_questions[i]):
+                process_question(sample_questions[i], qa_chain, df, question_embeddings)
+
     # Question input for general questions
     st.subheader("Ask a question about mental wellbeing")
     question = st.text_input("Enter your question:")
     if st.button("Get Answer"):
         if question:
-            answer = qa_chain.run(question)
-            if "I don't know" in answer or "I'm not sure" in answer:
-                # Perform similarity search if exact answer is not found
-                similar_question, similar_answer = find_similar_question(question, df, question_embeddings)
-                st.write("Couldn't find an exact answer. Here's a similar question and its answer:")
-                st.write(f"Most Similar Question: {similar_question}")
-                st.write(f"Suggested Answer: {similar_answer}")
-            else:
-                st.write("Answer:", answer)
+            process_question(question, qa_chain, df, question_embeddings)
         else:
             st.warning("Please enter a question.")
 else:

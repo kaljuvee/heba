@@ -19,7 +19,6 @@ openai_api_key = os.environ.get("OPENAI_API_KEY")
 
 # Initialize the language model
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, api_key=openai_api_key)
-
 # Initialize the embeddings
 embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
