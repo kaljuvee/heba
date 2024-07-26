@@ -37,13 +37,25 @@ def find_similar_question(new_question, df, question_embeddings):
 # Streamlit app
 st.title("Mental Wellbeing Assistant")
 
-# File uploader
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+# Option to use existing file
+default_file_path = 'data/mentastic_qa_en.csv'
+use_default_file = st.checkbox('Use existing file (mentastic_qa_en.csv)')
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.success("CSV file uploaded successfully!")
+if use_default_file:
+    df = pd.read_csv(default_file_path)
+    st.success("Using the existing file: mentastic_qa_en.csv")
+else:
+    # File uploader
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.success("CSV file uploaded successfully!")
+    else:
+        st.info("Please upload a CSV file to begin.")
+        df = None
+
+if df is not None:
     # Create vector store and QA chain
     loader = DataFrameLoader(df, page_content_column="Question")
     documents = loader.load()
@@ -82,5 +94,3 @@ if uploaded_file is not None:
                 st.write("Answer:", answer)
         else:
             st.warning("Please enter a question.")
-else:
-    st.info("Please upload a CSV file to begin.")

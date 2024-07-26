@@ -49,7 +49,7 @@ def process_question(question, qa_chain, df, question_embeddings):
         st.write(f"Most Similar Question: {similar_question}")
         st.write(f"Suggested Answer: {similar_answer}")
     else:
-        st.write("Answer:", answer)
+        st.write(answer)
 
 # Streamlit app
 st.title("Mentastic AI - Mental Wellbeing Assistant (RAG)")
@@ -69,13 +69,25 @@ num_questions = len(sample_questions)
 num_rows = (num_questions + num_columns - 1) // num_columns
 columns = st.columns(num_columns)
 
-# File uploader
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+# Option to use existing file
+default_file_path = 'data/mentastic_qa_en.csv'
+use_default_file = st.checkbox('Use the prebuilt questionnaire.')
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.success("CSV file uploaded successfully!")
+if use_default_file:
+    df = pd.read_csv(default_file_path)
+    st.success("Using the prebuilt questionnaire.")
+else:
+    # File uploader
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.success("CSV file uploaded successfully!")
+    else:
+        st.info("Please upload a CSV file to begin.")
+        df = None
+
+if df is not None:
     # Create vector store and QA chain
     loader = DataFrameLoader(df, page_content_column="Question")
     documents = loader.load()
@@ -115,5 +127,3 @@ if uploaded_file is not None:
             process_question(question, qa_chain, df, question_embeddings)
         else:
             st.warning("Please enter a question.")
-else:
-    st.info("Please upload a CSV file to begin.")
