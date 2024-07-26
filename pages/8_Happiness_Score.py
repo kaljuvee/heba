@@ -63,9 +63,25 @@ def generate_data(start_date, end_date):
 
 st.title("Mentastic AI - Happiness Score Prediction")
 
+st.markdown("""
+## Overview
+
+This is the dashboard for the data scientist / clinciian to predict the happiness score of a user based on their social media activity.
+            
+1. **Data range** - pick a data range (from the left) to generate synthetic data. 
+2. **Data generation** - We generate a synthetic dataset of social media activity data for users.
+3. **Modelling** - use a multi-variate time series prediction model (eg FB Prophet) to forecast the number of posts made by users based on their social media activity.
+
+## References 
+
+* [Facebook Prophet](https://facebook.github.io/prophet/)
+
+""")
 st.sidebar.header("Data Generation Settings")
 start_date = st.sidebar.date_input("Start date", datetime(2023, 12, 1))
 end_date = st.sidebar.date_input("End date", datetime(2023, 12, 31))
+
+
 
 if st.sidebar.button("Generate Data"):
     st.session_state['df'] = generate_data(start_date, end_date)
