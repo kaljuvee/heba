@@ -1,15 +1,7 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.document_loaders import DataFrameLoader
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 import os
+from openai import OpenAI
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -17,113 +9,89 @@ load_dotenv()
 # Set up OpenAI API key
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# Check if the API key is being loaded correctly
-if not openai_api_key:
-    raise ValueError("OpenAI API key not found in environment variables")
+client = OpenAI(api_key=openai_api_key)
 
-# Initialize the language model
-llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2, openai_api_key=openai_api_key)
-
-# Initialize the embeddings
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
-# Function to get embeddings for a list of texts
-def get_embeddings(texts):
-    return embeddings.embed_documents(texts)
-
-# Function to find the most similar question and its answer
-def find_similar_question(new_question, df, question_embeddings):
-    new_question_embedding = get_embeddings([new_question])[0]
-    similarities = cosine_similarity([new_question_embedding], question_embeddings)[0]
-    most_similar_index = np.argmax(similarities)
-    most_similar_question = df.iloc[most_similar_index]
-    return most_similar_question['Question'], most_similar_question['Answer']
-
-# Function to process a question
-def process_question(question, qa_chain, df, question_embeddings):
-    answer = qa_chain.run(question)
-    if "I don't know" in answer or "I'm not sure" in answer:
-        # Perform similarity search if exact answer is not found
-        similar_question, similar_answer = find_similar_question(question, df, question_embeddings)
-        st.write("Couldn't find an exact answer. Here's a similar question and its answer:")
-        st.write(f"Most Similar Question: {similar_question}")
-        st.write(f"Suggested Answer: {similar_answer}")
+# Function to save data to CSV
+def save_to_csv(df, file_name):
+    if not os.path.isfile(file_name):
+        df.to_csv(file_name, index=False)
     else:
-        st.write(answer)
+        df.to_csv(file_name, mode='a', header=False, index=False)
 
-# Streamlit app
-st.title("Mentastic AI - Mental Wellbeing Assistant (RAG)")
+# Function to extract number from text using OpenAI
+def extract_number(response_text):
+    prompt = f"Extract the number from the following response (if the response is a word, convert it to a number between 0 and 5): \"{response_text}\""
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that extracts numbers from text."},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=10
+    )
+    try:
+        extracted_number = int(response.choices[0].message.content.strip())
+        if 0 <= extracted_number <= 5:
+            return extracted_number
+    except ValueError:
+        pass
+    return None
 
-# Sample questions
-sample_questions = [
-    "I've been feeling stressed, can you help me?", 
-    "How can I manage disturbing thoughts?", 
-    "I keep ruminating on past events, how can I stop?",
-    "What are some good ways to relax?", 
-    "Finding time for myself is hard, what's your advice?"
-]
+# Load the CSV file
+df_questions = pd.read_csv('data/heba-balance-qa-ee.csv')
 
-# Create columns for sample questions
-num_columns = 3
-num_questions = len(sample_questions)
-num_rows = (num_questions + num_columns - 1) // num_columns
-columns = st.columns(num_columns)
+# Initialize session state
+if 'question_index' not in st.session_state:
+    st.session_state.question_index = 0
+if 'responses' not in st.session_state:
+    st.session_state.responses = []
 
-# Option to use existing file
-default_file_path = 'data/mentastic_qa_en.csv'
-use_default_file = st.checkbox('Use the prebuilt questionnaire.')
+# Display the title
+st.title("HEBA Küsitlus")
+st.write("Palun hinda viimase kahe nädala jooksul oma tundeid järgmiste väidete põhjal:")
 
-if use_default_file:
-    df = pd.read_csv(default_file_path)
-    st.success("Using the prebuilt questionnaire.")
+# Function to handle form submission
+def handle_submit(response):
+    extracted_number = extract_number(response)
+    if extracted_number is not None:
+        st.session_state.responses.append(extracted_number)
+        st.session_state.question_index += 1
+        st.success("Vastus on salvestatud!")
+    else:
+        st.error("Palun sisesta korrektne number vahemikus 0-5 või number sõnana.")
+
+# Display questions and handle responses
+if st.session_state.question_index < len(df_questions):
+    current_question = df_questions.iloc[st.session_state.question_index]['question']
+    suggestion = df_questions.iloc[st.session_state.question_index]['answer']
+    st.write(f"Küsimus {st.session_state.question_index + 1}/{len(df_questions)}:")
+    st.write(current_question)
+    st.write(f"Soovitus: {suggestion}")
+    
+    # Use a form to handle input and submission
+    with st.form(key=f'question_form_{st.session_state.question_index}'):
+        response = st.text_input("Sinu vastus (0-5):", key='current_response')
+        submit_button = st.form_submit_button(label='Saada')
+        
+        if submit_button:
+            handle_submit(response)
+            st.experimental_rerun()  # Rerun the app to show the next question
+
 else:
-    # File uploader
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    st.write("Aitäh, et vastasid kõigile küsimustele!")
+    # Convert responses to DataFrame and save to CSV
+    df = pd.DataFrame([st.session_state.responses], columns=[f'Küsimus {i+1}' for i in range(len(st.session_state.responses))])
+    save_to_csv(df, 'heba_responses.csv')
+    st.session_state.responses = []  # Reset responses
+    st.session_state.question_index = 0  # Reset question index
+    
+    if st.button("Alusta uuesti"):
+        st.experimental_rerun()
 
-    if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file)
-        st.success("CSV file uploaded successfully!")
+# Show the DataFrame
+if st.checkbox("Näita vastuseid"):
+    if os.path.isfile('heba_responses.csv'):
+        df = pd.read_csv('heba_responses.csv')
+        st.dataframe(df)
     else:
-        st.info("Please upload a CSV file to begin.")
-        df = None
-
-if df is not None:
-    # Create vector store and QA chain
-    loader = DataFrameLoader(df, page_content_column="Question")
-    documents = loader.load()
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    texts = text_splitter.split_documents(documents)
-    vector_store = FAISS.from_documents(texts, embeddings)
-
-    prompt_template = PromptTemplate(
-        template="Use the following context to answer the question about mental wellbeing: {context}\nQuestion: {question}\nAnswer. Always ask a question back to the user continue but only at the end after providing some suggestions:",
-        input_variables=["context", "question"]
-    )
-
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=vector_store.as_retriever(),
-        chain_type_kwargs={"prompt": prompt_template}
-    )
-
-    # Get embeddings for all questions
-    question_embeddings = get_embeddings(df['Question'].tolist())
-
-    # Add buttons for sample questions
-    for i in range(num_questions):
-        col_index = i % num_columns
-        row_index = i // num_columns
-
-        with columns[col_index]:
-            if st.button(sample_questions[i]):
-                process_question(sample_questions[i], qa_chain, df, question_embeddings)
-
-    # Question input for general questions
-    st.subheader("Ask a question about mental wellbeing")
-    question = st.text_input("Enter your question:")
-    if st.button("Get Answer"):
-        if question:
-            process_question(question, qa_chain, df, question_embeddings)
-        else:
-            st.warning("Please enter a question.")
+        st.write("Vastused puuduvad.")
