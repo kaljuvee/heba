@@ -52,6 +52,10 @@ st.write("Palun hinda viimase kahe nädala jooksul oma tundeid järgmiste väide
 
 # Function to handle form submission
 def handle_submit(response):
+    if response is None:
+        st.error("Vastus puudub.")
+        return
+
     extracted_number = extract_number(response)
     if extracted_number is not None:
         st.session_state.responses.append(extracted_number)
