@@ -47,13 +47,14 @@ if 'responses' not in st.session_state:
     st.session_state.responses = []
 
 # Display the title
+st.set_page_config(page_title="HEBA Küsitlus")
 st.title("HEBA Küsitlus")
 st.write("Palun hinda viimase kahe nädala jooksul oma tundeid järgmiste väidete põhjal:")
 
 # Function to handle form submission
 def handle_submit():
-    response = st.session_state.current_response
-    if response is None:
+    response = st.session_state[f'input_response_{st.session_state.question_index}']
+    if response is None or response == "":
         st.error("Vastus puudub.")
         return
 
@@ -61,42 +62,43 @@ def handle_submit():
     if extracted_number is not None:
         st.session_state.responses.append(extracted_number)
         st.session_state.question_index += 1
-        st.session_state.current_response = ""  # Clear the input field for the next question
     else:
         st.error("Palun sisesta korrektne number vahemikus 0-5 või number sõnana.")
 
 # Display questions and handle responses
-if st.session_state.question_index < len(df_questions):
-    current_question = df_questions.iloc[st.session_state.question_index]['question']
-    suggestion = df_questions.iloc[st.session_state.question_index]['answer']
-    st.write(f"Küsimus {st.session_state.question_index + 1}/{len(df_questions)}:")
-    st.write(current_question)
-    st.write(f"Soovitus: {suggestion}")
-    
-    # Use a form to handle input and submission
-    with st.form(key=f'question_form_{st.session_state.question_index}'):
-        response = st.text_input("Sinu vastus (0-5):", key='current_response')
-        submit_button = st.form_submit_button(label='Saada')
+with st.container():
+    if st.session_state.question_index < len(df_questions):
+        current_question = df_questions.iloc[st.session_state.question_index]['question']
+        suggestion = df_questions.iloc[st.session_state.question_index]['answer']
+        st.write(f"Küsimus {st.session_state.question_index + 1}/{len(df_questions)}:")
+        st.write(current_question)
+        st.write(f"Soovitus: {suggestion}")
         
-        if submit_button:
-            handle_submit()
+        # Use a form to handle input and submission
+        with st.form(key=f'question_form_{st.session_state.question_index}'):
+            response = st.text_input("Sinu vastus (0-5):", key=f'input_response_{st.session_state.question_index}')
+            submit_button = st.form_submit_button(label='Saada')
+            
+            if submit_button:
+                handle_submit()
 
-else:
-    st.write("Aitäh, et vastasid kõigile küsimustele!")
-    # Convert responses to DataFrame and save to CSV
-    df = pd.DataFrame([st.session_state.responses], columns=[f'Küsimus {i+1}' for i in range(len(st.session_state.responses))])
-    save_to_csv(df, 'heba_responses.csv')
-    st.session_state.responses = []  # Reset responses
-    st.session_state.question_index = 0  # Reset question index
-    
-    if st.button("Alusta uuesti"):
-        st.session_state.question_index = 0
-        st.session_state.responses = []
+    else:
+        st.write("Aitäh, et vastasid kõigile küsimustele!")
+        # Convert responses to DataFrame and save to CSV
+        df = pd.DataFrame([st.session_state.responses], columns=[f'Küsimus {i+1}' for i in range(len(st.session_state.responses))])
+        save_to_csv(df, 'heba_responses.csv')
+        st.session_state.responses = []  # Reset responses
+        st.session_state.question_index = 0  # Reset question index
+        
+        if st.button("Alusta uuesti"):
+            st.session_state.question_index = 0
+            st.session_state.responses = []
 
 # Show the DataFrame
-if st.checkbox("Näita vastuseid"):
-    if os.path.isfile('heba_responses.csv'):
-        df = pd.read_csv('heba_responses.csv')
-        st.dataframe(df)
-    else:
-        st.write("Vastused puuduvad.")
+with st.container():
+    if st.checkbox("Näita vastuseid"):
+        if os.path.isfile('heba_responses.csv'):
+            df = pd.read_csv('heba_responses.csv')
+            st.dataframe(df)
+        else:
+            st.write("Vastused puuduvad.")
