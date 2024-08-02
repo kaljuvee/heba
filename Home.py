@@ -21,7 +21,7 @@ def save_to_csv(df, file_name):
 # Function to extract number from text using OpenAI
 def extract_number(response_text):
     prompt = f"Extract the number from the following response (if the response is a word, convert it to a number between 0 and 5): \"{response_text}\""
-    response = client.chat.completions.create(
+    response = client.chat_completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts numbers from text."},
@@ -51,7 +51,8 @@ st.title("HEBA Küsitlus")
 st.write("Palun hinda viimase kahe nädala jooksul oma tundeid järgmiste väidete põhjal:")
 
 # Function to handle form submission
-def handle_submit(response):
+def handle_submit():
+    response = st.session_state.current_response
     if response is None:
         st.error("Vastus puudub.")
         return
@@ -60,8 +61,7 @@ def handle_submit(response):
     if extracted_number is not None:
         st.session_state.responses.append(extracted_number)
         st.session_state.question_index += 1
-        st.success("Vastus on salvestatud!")
-        st.experimental_rerun()
+        st.session_state.current_response = ""  # Clear the input field for the next question
     else:
         st.error("Palun sisesta korrektne number vahemikus 0-5 või number sõnana.")
 
@@ -79,7 +79,7 @@ if st.session_state.question_index < len(df_questions):
         submit_button = st.form_submit_button(label='Saada')
         
         if submit_button:
-            handle_submit(response)
+            handle_submit()
 
 else:
     st.write("Aitäh, et vastasid kõigile küsimustele!")
@@ -90,7 +90,8 @@ else:
     st.session_state.question_index = 0  # Reset question index
     
     if st.button("Alusta uuesti"):
-        st.experimental_rerun()
+        st.session_state.question_index = 0
+        st.session_state.responses = []
 
 # Show the DataFrame
 if st.checkbox("Näita vastuseid"):
