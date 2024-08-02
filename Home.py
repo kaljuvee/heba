@@ -21,7 +21,7 @@ def save_to_csv(df, file_name):
 # Function to extract number from text using OpenAI
 def extract_number(response_text):
     prompt = f"Extract the number from the following response (if the response is a word, convert it to a number between 0 and 5): \"{response_text}\""
-    response = client.chat_completions.create(
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts numbers from text."},
