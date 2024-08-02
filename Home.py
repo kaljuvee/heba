@@ -21,7 +21,7 @@ def save_to_csv(df, file_name):
 # Function to extract number from text using OpenAI
 def extract_number(response_text):
     prompt = f"Extract the number from the following response (if the response is a word, convert it to a number between 0 and 5): \"{response_text}\""
-    response = client.chat.completions.create(
+    response = client.chat_completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a helpful assistant that extracts numbers from text."},
@@ -57,6 +57,7 @@ def handle_submit(response):
         st.session_state.responses.append(extracted_number)
         st.session_state.question_index += 1
         st.success("Vastus on salvestatud!")
+        st.experimental_rerun()
     else:
         st.error("Palun sisesta korrektne number vahemikus 0-5 või number sõnana.")
 
@@ -75,7 +76,6 @@ if st.session_state.question_index < len(df_questions):
         
         if submit_button:
             handle_submit(response)
-            st.experimental_rerun()  # Rerun the app to show the next question
 
 else:
     st.write("Aitäh, et vastasid kõigile küsimustele!")
